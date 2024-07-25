@@ -11,9 +11,8 @@ data class PolylineEtaResponse(
     @SerialName("legs") val legs: List<RouteLeg>,
     @SerialName("polyline") val overviewPolyline: String,
 ) {
-    fun toPolylineEtaDetails(): PolylineEtaDetails = PolylineEtaDetails(
+    fun toPolylineData(): PolylineData = PolylineData(
         legs = legs,
-        overviewPolyline = getSimplifiedRoute(),
         distance = legs.sumOf { it.distance.toInt() },
         duration = legs.sumOf { it.duration },
         durationInTraffic = legs.sumOf { it.durationInTraffic }

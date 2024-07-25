@@ -4,7 +4,7 @@ import CalculatedPolylineResultData
 import NextLocationOnPolyLine
 import PorterLatLong
 import SnappedLocation
-import entities.PolylineEtaDetails
+import entities.PolylineData
 import getHaversineDistance
 import getLinearDistance
 import kotlinx.coroutines.Dispatchers.Default
@@ -16,13 +16,13 @@ class GetSnappedLocationDetails {
 
     suspend operator fun invoke(
         driverLocation: PorterLatLong,
-        polylineEtaDetails: PolylineEtaDetails,
+        polylineData: PolylineData,
     ): CalculatedPolylineResultData = withContext(Default) {
         var minDistance = Double.MAX_VALUE
         var result = CalculatedPolylineResultData.defaultData
         val time = measureTimeMillis {
-            for (legIndex in 0 until polylineEtaDetails.legs.size) {
-                val leg = polylineEtaDetails.legs[legIndex]
+            for (legIndex in 0 until polylineData.legs.size) {
+                val leg = polylineData.legs[legIndex]
                 for (stepIndex in 0 until leg.steps.size) {
                     val step = leg.steps[stepIndex]
                     for (i in 0 until step.polylineList.size - 1) {

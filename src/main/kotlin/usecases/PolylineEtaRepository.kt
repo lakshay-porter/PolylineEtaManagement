@@ -2,40 +2,35 @@ package usecases
 
 import PolylineEtaService
 import PorterLatLong
-import entities.PolylineEtaDetails
+import entities.PolylineData
 import entities.PolylineEtaRequest
 
-class PolylineEtaCacheManager(
+class PolylineEtaRepository(
     private val polylineEtaService: PolylineEtaService,
 ) {
-    private var cachedPolylineEtaDetails: PolylineEtaDetails? = null
+    private var cachedPolylineData: PolylineData? = null
 
-    suspend fun getPolylineEtaDetails(
+    suspend fun getPolylineData(
         crn: String,
         origin: PorterLatLong,
         destination: PorterLatLong,
         shouldClearAndUpdateCache: Boolean = false,
-    ): PolylineEtaDetails? {
+    ): PolylineData? {
         //TODO to be implemented on android front
-        return if (!shouldClearAndUpdateCache && cachedPolylineEtaDetails != null) cachedPolylineEtaDetails
+        return if (!shouldClearAndUpdateCache && cachedPolylineData != null) cachedPolylineData
         else {
             val polylineDetails = fetchUpdatedPolyline(origin, destination)
-            cachedPolylineEtaDetails = polylineDetails
+            cachedPolylineData = polylineDetails
             polylineDetails
         }
-    }
-
-    suspend fun savePolylineEtaDetails(polyline: PolylineEtaDetails) {
-        //TODO to be implemented on android front
-        cachedPolylineEtaDetails = polyline
     }
 
     private suspend fun fetchUpdatedPolyline(
         origin: PorterLatLong,
         destination: PorterLatLong,
-    ): PolylineEtaDetails {
+    ): PolylineData {
         val request = PolylineEtaRequest(origin = origin, destination = destination)
-        return polylineEtaService.getPolyLineEta(request).toPolylineEtaDetails()
+        return polylineEtaService.getPolyLineEta(request).toPolylineData()
     }
 
 

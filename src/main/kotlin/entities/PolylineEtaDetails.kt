@@ -1,27 +1,21 @@
 package entities
 
 import PorterLatLong
-import RouteLeg
+
 
 data class PolylineEtaDetails(
-    val legs: List<RouteLeg>,
-    val overviewPolyline: List<PorterLatLong>,
-    val distance: Int,
+    val polyline: List<PorterLatLong>,
     val duration: Long,
-    val durationInTraffic: Long
+    val durationInTraffic: Long,
 ) {
+    val etaMinutes: Long get() = duration / 60
+    val etaMinutesInTraffic: Long get() = durationInTraffic / 60
 
-    override fun toString(): String {
-        return "PolylineEtaDetails(" +
-                "\n\t\tdistance=$distance," +
-                "\n\t\tduration=$duration," +
-                "\n\t\tdurationInTraffic=$durationInTraffic," +
-//                "\n\t\toverviewPolyline=$overviewPolyline," +
-                "\n\t\tpolylineList.size=${polylineList.size}," +
-                "\n\t\toverviewPolyline.size=${overviewPolyline.size})"
-    }
-
-    val polylineList: List<PorterLatLong> by lazy {
-        legs.flatMap { it.polylineList }
-    }
+    override fun toString(): String = "PolylineEtaDetails(" +
+            "\n\tpolyline.size=${polyline.size}," +
+            "\n\tduration=$duration," +
+            "\n\tdurationInTraffic=$durationInTraffic," +
+            "\n\tetaMinutes=$etaMinutes," +
+            "\n\tetaMinutesInTraffic=$etaMinutesInTraffic" +
+            "\n)"
 }

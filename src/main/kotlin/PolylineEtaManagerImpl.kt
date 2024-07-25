@@ -1,19 +1,20 @@
+import entities.PolylineData
 import entities.PolylineEtaDetails
 import entities.TrimmedDurationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import usecases.GetRemainingDuration
 import usecases.GetSnappedLocationDetails
-import usecases.PolylineEtaCacheManager
-import kotlin.system.measureTimeMillis
+import usecases.PolylineEtaRepository
 
 typealias SnappedLocation = PorterLatLong
 typealias NextLocationOnPolyLine = PorterLatLong
 
 class PolylineEtaManagerImpl
 constructor(
-    private val polylineEtaCacheManager: PolylineEtaCacheManager,
+    private val polylineEtaRepository: PolylineEtaRepository,
     private val getSnappedLocationDetails: GetSnappedLocationDetails,
-    private val crn: String,
+    private val getRemainingDuration: GetRemainingDuration,
 ) : PolylineEtaManager {
 
 
@@ -25,94 +26,58 @@ constructor(
         startLocation: PorterLatLong,
         endLocation: PorterLatLong,
         driverLocation: PorterLatLong,
-    ): PolylineEtaDetails? = withContext(Dispatchers.Default) {
-        val polylineDetails = onLocationUpdateActual(driverLocation, endLocation)
-        polylineDetails?.let { polylineEtaCacheManager.savePolylineEtaDetails(polyline = it) }
-        polylineDetails
-    }
+        crn: String,
+    ): PolylineEtaDetails? =
+        withContext(Dispatchers.Default) { onLocationUpdateActual(driverLocation, endLocation, crn) }
 
     private suspend fun onLocationUpdateActual(
         driverLocation: PorterLatLong,
-        endLocation: PorterLatLong
+        endLocation: PorterLatLong,
+        crn: String,
     ): PolylineEtaDetails? {
         // check if driver deviated from path
         // fetch if required and update polyline on map
         // calculate updated ETA for updated polyline
         // snapping to polyline
 
-        val polylineEtaDetails =
-            polylineEtaCacheManager.getPolylineEtaDetails(driverLocation, endLocation) ?: return null
-        val sumOfDurations = polylineEtaDetails.legs.sumOf { leg ->
-            leg.steps.sumOf { step ->
-                step.duration
-            }
-        }
-        println("sumOfDurations: $sumOfDurations")
-        val snappedLocationDetails = getSnappedLocationDetails(driverLocation, polylineEtaDetails)
+        val polylineData =
+            polylineEtaRepository.getPolylineData(crn, driverLocation, endLocation) ?: return null
+
+        val snappedLocationDetails = getSnappedLocationDetails(driverLocation, polylineData)
+        lastSnappedLocationMutable = snappedLocationDetails.snappedLocation
         println("snappedLocationDetails: $snappedLocationDetails")
 
         if (snappedLocationDetails.deviation > POLYLINE_SNAP_DISTANCE_THRESHOLD)
-            return polylineEtaCacheManager.getPolylineEtaDetails(
-                driverLocation,
-                endLocation,
-                shouldClearAndUpdateCache = true
-            )
-        val trimmedPolyLine =
-            polylineEtaDetails.polylineList.dropWhile { it != snappedLocationDetails.nextPointInPolylineData }
+            return getNewPolylineData(crn, driverLocation, endLocation)?.toPolylineEtaDetails()
 
-        println("trimmedPolyLine: ${trimmedPolyLine.size}")
-        println("Original Polyline: ${polylineEtaDetails.polylineList.size}")
-        val timeTaken = measureTimeMillis {
-            val durationResult = getDuration(polylineEtaDetails, snappedLocationDetails)
-            println("Duration Result: $durationResult")
-        }
-        println("Time taken to calculate duration: $timeTaken ms")
-
-
-        return if (snappedLocationDetails.snappedLocation == snappedLocationDetails.nextPointInPolylineData)
-            polylineEtaDetails.copy(overviewPolyline = trimmedPolyLine)
-        else polylineEtaDetails.copy(overviewPolyline = listOf(snappedLocationDetails.snappedLocation) + trimmedPolyLine)
+        val trimmedPolyLine = getTrimmedPolyLine(polylineData, snappedLocationDetails)
+        val durationResult = getRemainingDuration(polylineData, snappedLocationDetails)
+        return getResult(snappedLocationDetails, trimmedPolyLine, durationResult)
     }
 
-    private fun getDuration(
-        polylineEtaDetails: PolylineEtaDetails,
+    private suspend fun getNewPolylineData(crn: String, driverLocation: PorterLatLong, endLocation: PorterLatLong) =
+        polylineEtaRepository.getPolylineData(crn, driverLocation, endLocation, true)
+
+    private fun getTrimmedPolyLine(
+        polylineData: PolylineData,
+        snappedLocationDetails: CalculatedPolylineResultData
+    ) = polylineData.polylineList.dropWhile { it != snappedLocationDetails.nextPointInPolylineData }
+
+    private fun getResult(
         snappedLocationDetails: CalculatedPolylineResultData,
-    ): TrimmedDurationResult {
-        var duration = 0L
-        var durationInTraffic = 0L
+        trimmedPolyLine: List<PorterLatLong>,
+        durationResult: TrimmedDurationResult
+    ): PolylineEtaDetails {
+        val polyline = if (snappedLocationDetails.snappedLocation == snappedLocationDetails.nextPointInPolylineData)
+            trimmedPolyLine
+        else listOf(snappedLocationDetails.snappedLocation) + trimmedPolyLine
+        return PolylineEtaDetails(
+            polyline = polyline,
+            duration = durationResult.duration,
+            durationInTraffic = durationResult.durationInTraffic
+        )
 
-        val currentLeg = polylineEtaDetails.legs[snappedLocationDetails.legIndex]
-        val currentStep = currentLeg.steps[snappedLocationDetails.stepIndex]
-        val trafficMultiplier = currentLeg.durationInTraffic.toFloat() / currentLeg.duration
-
-        //add remaining duration in the current step
-        val index = currentStep.polylineList.indexOf(snappedLocationDetails.snappedLocation)
-
-        if (index != -1 && index + 1 < currentStep.polylineList.size) {
-            val remainingPolyline = currentStep.polylineList.subList(index, currentStep.polylineList.size)
-            val remainingDistance = 100 //todo
-            val remainingDuration = (remainingDistance / currentStep.distance.toFloat() * currentStep.duration).toLong()
-            val remainingDurationInTraffic = (remainingDuration * trafficMultiplier).toLong()
-            duration += remainingDuration
-            durationInTraffic += remainingDurationInTraffic
-        }
-
-        //sum of remaining steps in the current leg
-        if (snappedLocationDetails.stepIndex + 1 < currentLeg.steps.size)
-            for (i in snappedLocationDetails.stepIndex + 1 until currentLeg.steps.size) {
-                duration += currentLeg.steps[i].duration
-                durationInTraffic += (currentLeg.steps[i].duration * trafficMultiplier).toLong()
-            }
-
-        //sum of remaining legs
-        if (snappedLocationDetails.legIndex + 1 < polylineEtaDetails.legs.size)
-            for (i in snappedLocationDetails.legIndex + 1 until polylineEtaDetails.legs.size) {
-                duration += polylineEtaDetails.legs[i].duration
-                durationInTraffic += polylineEtaDetails.legs[i].durationInTraffic
-            }
-        return TrimmedDurationResult(duration = duration, durationInTraffic = durationInTraffic)
     }
-
 
     companion object {
         private const val POLYLINE_SNAP_DISTANCE_THRESHOLD: Int = Int.MAX_VALUE
