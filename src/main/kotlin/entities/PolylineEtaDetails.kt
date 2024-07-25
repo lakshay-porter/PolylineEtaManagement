@@ -5,6 +5,7 @@ import PorterLatLong
 
 data class PolylineEtaDetails(
     val polyline: List<PorterLatLong>,
+    val driverSnappedLocation: PorterLatLong?,
     val duration: Long,
     val durationInTraffic: Long,
 ) {

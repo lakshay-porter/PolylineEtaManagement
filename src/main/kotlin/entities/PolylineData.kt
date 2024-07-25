@@ -22,7 +22,8 @@ data class PolylineData(
         return PolylineEtaDetails(
             duration = duration,
             durationInTraffic = durationInTraffic,
-            polyline = polylineList
+            polyline = polylineList,
+            driverSnappedLocation = polylineList.firstOrNull()
         )
     }
 

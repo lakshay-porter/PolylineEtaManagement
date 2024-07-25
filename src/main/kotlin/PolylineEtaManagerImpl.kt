@@ -74,9 +74,9 @@ constructor(
         return PolylineEtaDetails(
             polyline = polyline,
             duration = durationResult.duration,
-            durationInTraffic = durationResult.durationInTraffic
+            durationInTraffic = durationResult.durationInTraffic,
+            driverSnappedLocation = snappedLocationDetails.snappedLocation,
         )
-
     }
 
     companion object {
