@@ -8,8 +8,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PolylineEtaResponse(
-    @SerialName("legs") val legs: List<RouteLeg>,
-    @SerialName("polyline") val overviewPolyline: String,
+    @SerialName("legs") val legs: List<RouteLeg> = emptyList(),
+    @SerialName("polyline") val overviewPolyline: String = "",
 ) {
     fun toPolylineData(): PolylineData = PolylineData(
         legs = legs,

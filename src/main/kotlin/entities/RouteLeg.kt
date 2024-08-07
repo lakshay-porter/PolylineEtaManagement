@@ -12,4 +12,8 @@ data class RouteLeg(
     val polylineList: List<PorterLatLong> by lazy {
         steps.flatMap { it.polylineList }
     }
+
+    override fun toString(): String {
+        return "RouteLeg(steps=${steps.size})"
+    }
 }

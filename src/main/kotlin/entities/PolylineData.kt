@@ -15,6 +15,8 @@ data class PolylineData(
                 "\n\t\tdistance=$distance," +
                 "\n\t\tduration=$duration," +
                 "\n\t\tdurationInTraffic=$durationInTraffic," +
+                "\n\t\tlegs.size=${legs.size}," +
+                "\n\t\tlegs=${legs}," +
                 "\n\t\tpolylineList.size=${polylineList.size}"
     }
 

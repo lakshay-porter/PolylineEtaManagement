@@ -3,6 +3,7 @@ import entities.PolylineEtaDetails
 import entities.TrimmedDurationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import usecases.ComputePolylineEtaData
 import usecases.GetRemainingDuration
 import usecases.GetSnappedLocationDetails
 import usecases.PolylineEtaRepository
@@ -15,6 +16,7 @@ constructor(
     private val polylineEtaRepository: PolylineEtaRepository,
     private val getSnappedLocationDetails: GetSnappedLocationDetails,
     private val getRemainingDuration: GetRemainingDuration,
+    private val computePolylineEtaData: ComputePolylineEtaData,
 ) : PolylineEtaManager {
 
 
@@ -52,6 +54,7 @@ constructor(
 
         val trimmedPolyLine = getTrimmedPolyLine(polylineData, snappedLocationDetails)
         val durationResult = getRemainingDuration(polylineData, snappedLocationDetails)
+        computePolylineEtaData(polylineData, snappedLocationDetails, durationResult)
         return getResult(snappedLocationDetails, trimmedPolyLine, durationResult)
     }
 

@@ -1,4 +1,5 @@
 import kotlinx.coroutines.runBlocking
+import usecases.ComputePolylineEtaData
 import usecases.GetRemainingDuration
 import usecases.GetSnappedLocationDetails
 import usecases.PolylineEtaRepository
@@ -18,13 +19,14 @@ fun main(args: Array<String>) = runBlocking {
     val polylineEtaManager = PolylineEtaManagerImpl(
         PolylineEtaRepository(polylineEtaService = PolylineEtaService()),
         getSnappedLocationDetails = GetSnappedLocationDetails(),
-        getRemainingDuration = GetRemainingDuration()
+        getRemainingDuration = GetRemainingDuration(),
+        computePolylineEtaData = ComputePolylineEtaData(),
     )
     val time = measureTimeMillis {
         val result = polylineEtaManager.onLocationUpdate(
             startLocation = PorterLatLong(0.0, 0.0),
             endLocation = PorterLatLong(5.0, 7.0),
-            driverLocation = PorterLatLong(26.50100,74.56425),
+            driverLocation = PorterLatLong(26.50100, 74.56425),
             crn = "123456"
         )
         println("Result: $result")
