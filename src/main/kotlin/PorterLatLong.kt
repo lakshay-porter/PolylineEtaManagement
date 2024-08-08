@@ -1,10 +1,13 @@
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlin.math.*
 
+@Serializable
 data class PorterLatLong(
-    val lat: Double,
-    val lng: Double,
-    val provider: String? = null,
-){
+    @SerialName("lat") val lat: Double,
+    @SerialName("lng") val lng: Double,
+    @SerialName("provider") val provider: String? = null,
+) {
     override fun toString(): String {
         return "($lat,$lng)"
     }

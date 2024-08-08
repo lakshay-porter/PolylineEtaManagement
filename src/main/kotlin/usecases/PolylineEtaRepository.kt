@@ -4,9 +4,12 @@ import PolylineEtaService
 import PorterLatLong
 import entities.PolylineData
 import entities.PolylineEtaRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class PolylineEtaRepository(
     private val polylineEtaService: PolylineEtaService,
+    private val buildPolylineData: BuildPolylineData,
 ) {
     private var cachedPolylineData: PolylineData? = null
 
@@ -28,9 +31,9 @@ class PolylineEtaRepository(
     private suspend fun fetchUpdatedPolyline(
         origin: PorterLatLong,
         destination: PorterLatLong,
-    ): PolylineData {
+    ): PolylineData = withContext(Dispatchers.IO) {
         val request = PolylineEtaRequest(origin = origin, destination = destination)
-        return polylineEtaService.getPolyLineEta(request).toPolylineData()
+        buildPolylineData(polylineEtaService.getPolyLineEta(request))
     }
 
 

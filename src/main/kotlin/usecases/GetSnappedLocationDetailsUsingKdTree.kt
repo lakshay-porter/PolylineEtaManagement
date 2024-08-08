@@ -5,43 +5,44 @@ import NextLocationOnPolyLine
 import PorterLatLong
 import SnappedLocation
 import entities.PolylineData
+import entities.RouteLocation
 import getHaversineDistance
 import getLinearDistance
 import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.withContext
+import util.KDTreeManager
 import kotlin.math.pow
-import kotlin.system.measureTimeMillis
 
-class GetSnappedLocationDetails {
+class GetSnappedLocationDetailsUsingKdTree constructor(private val kdTreeManager: KDTreeManager) {
 
     suspend operator fun invoke(
-        driverLocation: PorterLatLong,
         polylineData: PolylineData,
+        driverLocation: PorterLatLong,
     ): CalculatedPolylineResultData = withContext(Default) {
+        val driverRouteLocation = RouteLocation(driverLocation, -1, -1)
+        val routeLocation = kdTreeManager.nearestLocation(polylineData.tree, driverRouteLocation)
+            ?: error("Could not find route location for driver location: $driverLocation")
         var minDistance = Double.MAX_VALUE
         var result = CalculatedPolylineResultData.defaultData
-            for (legIndex in 0 until polylineData.legs.size) {
-                val leg = polylineData.legs[legIndex]
-                for (stepIndex in 0 until leg.steps.size) {
-                    val step = leg.steps[stepIndex]
-                    for (i in 0 until step.polylineList.size - 1) {
-                        val start = step.polylineList[i]
-                        val end = step.polylineList[i + 1]
-                        val (closestPoint, nextPoint) = computeClosestAndNextLocation(driverLocation, start, end)
-                        val distance = driverLocation.getLinearDistance(closestPoint)
-                        if (distance < minDistance) {
-                            minDistance = distance
-                            result = CalculatedPolylineResultData(
-                                snappedLocation = closestPoint,
-                                nextPointInPolylineData = nextPoint,
-                                deviation = distance,
-                                legIndex = legIndex,
-                                stepIndex = stepIndex
-                            )
-                        }
-                    }
-                }
+        val step = polylineData.legs[routeLocation.legIndex].steps[routeLocation.stepIndex]
+
+        for (i in 0 until step.polylineList.size - 1) {
+            val start = step.polylineList[i]
+            val end = step.polylineList[i + 1]
+            val (closestPoint, nextPoint) = computeClosestAndNextLocation(driverLocation, start, end)
+            val distance = driverLocation.getLinearDistance(closestPoint)
+            if (distance < minDistance) {
+                minDistance = distance
+                result = CalculatedPolylineResultData(
+                    snappedLocation = closestPoint,
+                    nextPointInPolylineData = nextPoint,
+                    deviation = distance,
+                    legIndex = routeLocation.legIndex,
+                    stepIndex = routeLocation.stepIndex
+                )
             }
+        }
+
         val haversineDistance = driverLocation.getHaversineDistance(result.snappedLocation)
         result.copy(deviation = haversineDistance)
     }

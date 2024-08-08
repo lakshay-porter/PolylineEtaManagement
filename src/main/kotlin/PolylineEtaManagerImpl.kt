@@ -3,10 +3,9 @@ import entities.PolylineEtaDetails
 import entities.TrimmedDurationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import usecases.ComputePolylineEtaData
-import usecases.GetRemainingDuration
-import usecases.GetSnappedLocationDetails
-import usecases.PolylineEtaRepository
+import usecases.*
+import util.KDTreeManager
+import kotlin.system.measureNanoTime
 
 typealias SnappedLocation = PorterLatLong
 typealias NextLocationOnPolyLine = PorterLatLong
@@ -14,9 +13,9 @@ typealias NextLocationOnPolyLine = PorterLatLong
 class PolylineEtaManagerImpl
 constructor(
     private val polylineEtaRepository: PolylineEtaRepository,
-    private val getSnappedLocationDetails: GetSnappedLocationDetails,
     private val getRemainingDuration: GetRemainingDuration,
     private val computePolylineEtaData: ComputePolylineEtaData,
+    private val getSnappedLocationDetailsUsingKdTree: GetSnappedLocationDetailsUsingKdTree,
 ) : PolylineEtaManager {
 
 
@@ -45,9 +44,8 @@ constructor(
         val polylineData =
             polylineEtaRepository.getPolylineData(crn, driverLocation, endLocation) ?: return null
 
-        val snappedLocationDetails = getSnappedLocationDetails(driverLocation, polylineData)
+        val snappedLocationDetails = getSnappedLocationDetailsUsingKdTree(polylineData, driverLocation)
         lastSnappedLocationMutable = snappedLocationDetails.snappedLocation
-        println("snappedLocationDetails: $snappedLocationDetails")
 
         if (snappedLocationDetails.deviation > POLYLINE_SNAP_DISTANCE_THRESHOLD)
             return getNewPolylineData(crn, driverLocation, endLocation)?.toPolylineEtaDetails()

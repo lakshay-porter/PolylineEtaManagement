@@ -1,13 +1,14 @@
 package entities
 
 import PorterLatLong
-import RouteLeg
+import util.KDNode
 
 data class PolylineData(
     val legs: List<RouteLeg>,
     val distance: Int,
     val duration: Long,
-    val durationInTraffic: Long
+    val durationInTraffic: Long,
+    val tree: KDNode,
 ) {
 
     override fun toString(): String {

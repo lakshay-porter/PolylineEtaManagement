@@ -1,11 +1,22 @@
 import kotlinx.coroutines.runBlocking
-import usecases.ComputePolylineEtaData
-import usecases.GetRemainingDuration
-import usecases.GetSnappedLocationDetails
-import usecases.PolylineEtaRepository
+import usecases.*
+import util.KDTreeManager
 import kotlin.system.measureTimeMillis
 
 fun main(args: Array<String>) = runBlocking {
+
+    val list = PolylineEtaService().temp().sortedBy {
+        it.customerTs
+    }
+    list.forEach {
+        println("${it.lat},${it.lng},${it.customerTs},${it.driverTs},${it.customerTs!! - it.driverTs!!}")
+    }
+
+
+
+
+
+
     println("Starting Process")
     val points = listOf(
         PorterLatLong(27.18266, 75.9582),
@@ -16,11 +27,16 @@ fun main(args: Array<String>) = runBlocking {
     )
     val distance = points[0].getHaversineDistance(points[1])
     println("Encoded: $encoded, Distance: $distance")
+    val kdTreeManager = KDTreeManager()
+    val buildKDTree = BuildKDTree(kdTreeManager)
     val polylineEtaManager = PolylineEtaManagerImpl(
-        PolylineEtaRepository(polylineEtaService = PolylineEtaService()),
-        getSnappedLocationDetails = GetSnappedLocationDetails(),
+        PolylineEtaRepository(
+            polylineEtaService = PolylineEtaService(),
+            buildPolylineData = BuildPolylineData(buildKDTree)
+        ),
         getRemainingDuration = GetRemainingDuration(),
         computePolylineEtaData = ComputePolylineEtaData(),
+        getSnappedLocationDetailsUsingKdTree = GetSnappedLocationDetailsUsingKdTree(kdTreeManager),
     )
     val time = measureTimeMillis {
         val result = polylineEtaManager.onLocationUpdate(

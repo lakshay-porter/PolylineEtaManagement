@@ -1,8 +1,8 @@
 package usecases
 
 import CalculatedPolylineResultData
-import RouteLeg
 import entities.PolylineData
+import entities.RouteLeg
 import entities.TrimmedDurationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,7 +12,7 @@ class ComputePolylineEtaData {
         polylineData: PolylineData,
         snappedLocationDetails: CalculatedPolylineResultData,
         durationResult: TrimmedDurationResult,
-    ): PolylineData? = withContext(Dispatchers.Default) {
+    ): PolylineData = withContext(Dispatchers.Default) {
         val remainingLegs = polylineData.legs.drop(snappedLocationDetails.legIndex)
         val remainingSteps = remainingLegs.first().steps.drop(snappedLocationDetails.stepIndex + 1)
         val calculatedLegs = mutableListOf<RouteLeg>()
@@ -35,10 +35,7 @@ class ComputePolylineEtaData {
             distance = calculatedLegs.sumOf { it.distance }.toInt(),
             duration = durationResult.duration,
             durationInTraffic = durationResult.durationInTraffic,
-        ).also {
-            println("PolylineData: $it")
-            println("PolylineData2: $polylineData")
-        }
-
+            tree = polylineData.tree
+        )
     }
 }

@@ -7,9 +7,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RouteStep(
-    @SerialName("polyline") val polyline: String,
-    @SerialName("distance") val distance: Long,
-    @SerialName("duration") val duration: Long,
+    @SerialName("polyline") val polyline: String = "",
+    @SerialName("distance") val distance: Long = 0,
+    @SerialName("duration") val duration: Long = 0,
 ) {
     val polylineList: List<PorterLatLong> by lazy {
         PolylineUtils.decode(polyline)
